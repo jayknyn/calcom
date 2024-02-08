@@ -1,29 +1,37 @@
 # Use postgres/example user/password credentials
 version: '3.8'
 
-volumes:
-  database-data:
+# volumes:
+#   db-data:
 
 networks:
-  stack:
-    name: stack
-    external: false
+  calcom:
+    internal: true
+    name: calcom
 
 services:
-  database:
-    container_name: database
-    image: postgres
-    restart: always
+  db:
+    container_name: calcom-db
+    image: postgres:15.2-alpine
+    restart: unless-stopped
     volumes:
-      - database-data:/var/lib/postgresql/data/
+      - ./db:/var/lib/postgresql/data/
     env_file: .env
+    environment:
+      - POSTGRES_DB=${DB_NAME}
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - TZ
     networks:
-      - stack
+      - calcom
 
   calcom:
-    image: calcom.docker.scarf.sh/calcom/cal.com
+    container_name: calcom-app
+    image: jayknyn/calcom:arm64
     build:
       context: .
+      platforms:
+        - 'linux/arm64'
       dockerfile: Dockerfile
       args:
         NEXT_PUBLIC_WEBAPP_URL: ${NEXT_PUBLIC_WEBAPP_URL}
@@ -32,31 +40,31 @@ services:
         NEXTAUTH_SECRET: ${NEXTAUTH_SECRET}
         CALENDSO_ENCRYPTION_KEY: ${CALENDSO_ENCRYPTION_KEY}
         DATABASE_URL: ${DATABASE_URL}
-      network: stack
+      network: calcom
     restart: always
     networks:
-      - stack
+      - calcom
     ports:
       - 3000:3000
     env_file: .env
     environment:
-      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${DATABASE_HOST}/${POSTGRES_DB}
+      - DATABASE_URL=postgresql://${DB_USER}:${DB_PASSWORD}@${DB_HOST}/${DB_NAME}
     depends_on:
-      - database
+      - db
 
-# Optional use of Prisma Studio. In production, comment out or remove the section below to prevent unwanted access to your database.
+  # Optional use of Prisma Studio. In production, comment out or remove the section below to prevent unwanted access to your database.
   studio:
-    image: calcom.docker.scarf.sh/calcom/cal.com
+    image: jayknyn/calcom:arm64
     restart: always
     networks:
-      - stack
+      - calcom
     ports:
       - 5555:5555
     env_file: .env
     environment:
-      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${DATABASE_HOST}/${POSTGRES_DB}
+      - DATABASE_URL=postgresql://${DB_USER}:${DB_PASSWORD}@${DB_HOST}/${DB_NAME}
     depends_on:
-      - database
+      - db
     command:
       - npx
       - prisma
