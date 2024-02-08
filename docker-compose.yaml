@@ -1,8 +1,8 @@
 # Use postgres/example user/password credentials
 version: '3.8'
 
-# volumes:
-#   db-data:
+volumes:
+  calcom-build-db:
 
 networks:
   calcom:
@@ -15,7 +15,7 @@ services:
     image: postgres:15.2-alpine
     restart: unless-stopped
     volumes:
-      - ./db:/var/lib/postgresql/data/
+      - calcom-build-db:/var/lib/postgresql/data/
     env_file: .env
     environment:
       - POSTGRES_DB=${DB_NAME}
@@ -53,20 +53,20 @@ services:
       - db
 
   # Optional use of Prisma Studio. In production, comment out or remove the section below to prevent unwanted access to your database.
-  studio:
-    image: jayknyn/calcom:arm64
-    restart: always
-    networks:
-      - calcom
-    ports:
-      - 5555:5555
-    env_file: .env
-    environment:
-      - DATABASE_URL=postgresql://${DB_USER}:${DB_PASSWORD}@${DB_HOST}/${DB_NAME}
-    depends_on:
-      - db
-    command:
-      - npx
-      - prisma
-      - studio
+  # studio:
+  #   image: jayknyn/calcom:arm64
+  #   restart: always
+  #   networks:
+  #     - calcom
+  #   ports:
+  #     - 5555:5555
+  #   env_file: .env
+  #   environment:
+  #     - DATABASE_URL=postgresql://${DB_USER}:${DB_PASSWORD}@${DB_HOST}/${DB_NAME}
+  #   depends_on:
+  #     - db
+  #   command:
+  #     - npx
+  #     - prisma
+  #     - studio
 # END SECTION: Optional use of Prisma Studio.
